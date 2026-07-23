@@ -17,6 +17,7 @@ import { HabitsProvider } from '@/context/HabitsContext';
 import { JournalProvider } from '@/context/JournalContext';
 import { GoalsProvider } from '@/context/GoalsContext';
 import { RemindersProvider } from '@/context/RemindersContext';
+import { SettingsProvider } from '@/context/SettingsContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -52,15 +53,17 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
-              <HabitsProvider>
-                <JournalProvider>
-                  <GoalsProvider>
-                    <RemindersProvider>
-                      <RootLayoutNav />
-                    </RemindersProvider>
-                  </GoalsProvider>
-                </JournalProvider>
-              </HabitsProvider>
+              <SettingsProvider>
+                <HabitsProvider>
+                  <JournalProvider>
+                    <GoalsProvider>
+                      <RemindersProvider>
+                        <RootLayoutNav />
+                      </RemindersProvider>
+                    </GoalsProvider>
+                  </JournalProvider>
+                </HabitsProvider>
+              </SettingsProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useColors } from '@/hooks/useColors';
+import { useSettings } from '@/context/SettingsContext';
 import { useHabits, Habit } from '@/context/HabitsContext';
 import { HabitCard } from '@/components/HabitCard';
 import { HabitCalendar } from '@/components/HabitCalendar';
@@ -37,12 +38,13 @@ const DEFAULT_FORM: HabitForm = {
 export default function HabitsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { settings } = useSettings();
   const { habits, addHabit, updateHabit, deleteHabit, toggleHabitCompletion, toggleHabitCompletionForDate, isCompletedToday, getTodayCompletedCount } = useHabits();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<HabitForm>(DEFAULT_FORM);
   const [filter, setFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>(settings.defaultHabitView);
 
   const openAdd = () => {
     setForm(DEFAULT_FORM);

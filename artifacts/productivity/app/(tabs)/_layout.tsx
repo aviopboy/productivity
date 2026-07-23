@@ -32,6 +32,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: 'bell', selected: 'bell.fill' }} />
         <Label>Reminders</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="settings">
+        <Icon sf={{ default: 'gearshape', selected: 'gearshape.fill' }} />
+        <Label>Settings</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
@@ -128,6 +132,18 @@ function ClassicTabLayout() {
               <SymbolView name="bell.fill" tintColor={color} size={24} />
             ) : (
               <Feather name="bell" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="gearshape.fill" tintColor={color} size={24} />
+            ) : (
+              <Ionicons name="settings-outline" size={22} color={color} />
             ),
         }}
       />
