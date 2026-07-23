@@ -21,7 +21,10 @@
     },
     "android": {
       "package": "com.orbit.productivity",
-      "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE"]
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -47,6 +50,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "fc7a350c-1a77-4215-ace3-1e38ce1d7290"
+      }
+    },
+    "owner": "aviraj29834s-team"
   }
 }
