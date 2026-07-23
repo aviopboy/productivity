@@ -35,11 +35,18 @@ jobs:
 
       - name: Build APK via EAS
         working-directory: artifacts/productivity
-        run: eas build --platform android --profile preview --non-interactive --output ./orbit.apk
+        run: |
+          BUILD_JSON=$(eas build --platform android --profile preview --non-interactive --json --non-interactive)
+          BUILD_URL=$(echo "$BUILD_JSON" | jq -r '.[0].artifacts.buildUrl')
+          echo "BUILD_URL=$BUILD_URL" >> $GITHUB_ENV
+
+      - name: Download APK
+        run: |
+          curl -L "$BUILD_URL" -o orbit.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: orbit-apk
-          path: artifacts/productivity/orbit.apk
+          path: orbit.apk
           retention-days: 30
