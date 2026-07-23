@@ -22,7 +22,7 @@ interface JournalContextType {
 }
 
 const JournalContext = createContext<JournalContextType | undefined>(undefined);
-const STORAGE_KEY = '@momentum_journal';
+const STORAGE_KEY = '@orbit_journal';
 
 function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);

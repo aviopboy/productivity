@@ -1,4 +1,4 @@
-# Momentum — Productivity App
+# ORBIT — Productivity App
 
 A full-featured native mobile productivity app built with Expo/React Native. Tracks habits, journals, goals, and daily reminders — all with a beautiful deep-indigo design.
 

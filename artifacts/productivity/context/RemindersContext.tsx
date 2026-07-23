@@ -29,8 +29,8 @@ interface RemindersContextType {
 }
 
 const RemindersContext = createContext<RemindersContextType | undefined>(undefined);
-const STORAGE_KEY = '@momentum_reminders';
-const NOTIF_ENABLED_KEY = '@momentum_notif_enabled';
+const STORAGE_KEY = '@orbit_reminders';
+const NOTIF_ENABLED_KEY = '@orbit_notif_enabled';
 
 function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);

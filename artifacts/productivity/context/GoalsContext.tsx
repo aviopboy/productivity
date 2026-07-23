@@ -31,7 +31,7 @@ interface GoalsContextType {
 }
 
 const GoalsContext = createContext<GoalsContextType | undefined>(undefined);
-const STORAGE_KEY = '@momentum_goals';
+const STORAGE_KEY = '@orbit_goals';
 
 function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);

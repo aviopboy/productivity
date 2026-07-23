@@ -30,7 +30,7 @@ interface HabitsContextType {
 
 const HabitsContext = createContext<HabitsContextType | undefined>(undefined);
 
-const STORAGE_KEY = '@momentum_habits';
+const STORAGE_KEY = '@orbit_habits';
 
 function getTodayStr(): string {
   return new Date().toISOString().split('T')[0];
