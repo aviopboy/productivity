@@ -1,0 +1,23 @@
+kind = "mobile"
+previewPath = "/"
+title = "Productivity App"
+version = "1.0.0"
+id = "artifacts/productivity"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/" ]
+localPort = 25104
+
+[services.development]
+run = "pnpm --filter @workspace/productivity run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/productivity", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/productivity", "run", "serve" ]
+
+[services.env]
+PORT = "25104"
+BASE_PATH = "/"
