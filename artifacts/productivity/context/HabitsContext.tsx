@@ -23,6 +23,7 @@ interface HabitsContextType {
   updateHabit: (id: string, updates: Partial<Habit>) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
   toggleHabitCompletion: (id: string) => Promise<void>;
+  toggleHabitCompletionForDate: (id: string, dateStr: string) => Promise<void>;
   isCompletedToday: (habit: Habit) => boolean;
   getTodayCompletionRate: () => number;
   getTodayCompletedCount: () => number;
@@ -139,6 +140,26 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     await saveHabits(updated);
   }, [habits]);
 
+  const toggleHabitCompletionForDate = useCallback(async (id: string, dateStr: string) => {
+    const updated = habits.map(h => {
+      if (h.id !== id) return h;
+      let completedDates: string[];
+      if (h.completedDates.includes(dateStr)) {
+        completedDates = h.completedDates.filter(d => d !== dateStr);
+      } else {
+        completedDates = [...h.completedDates, dateStr];
+      }
+      const streak = calculateStreak(completedDates);
+      return {
+        ...h,
+        completedDates,
+        streak,
+        longestStreak: Math.max(h.longestStreak, streak),
+      };
+    });
+    await saveHabits(updated);
+  }, [habits]);
+
   const isCompletedToday = useCallback((habit: Habit) => {
     return habit.completedDates.includes(getTodayStr());
   }, []);
@@ -156,8 +177,8 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   return (
     <HabitsContext.Provider value={{
       habits, loading, addHabit, updateHabit, deleteHabit,
-      toggleHabitCompletion, isCompletedToday,
-      getTodayCompletionRate, getTodayCompletedCount,
+      toggleHabitCompletion, toggleHabitCompletionForDate,
+      isCompletedToday, getTodayCompletionRate, getTodayCompletedCount,
     }}>
       {children}
     </HabitsContext.Provider>

@@ -10,6 +10,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useColors } from '@/hooks/useColors';
 import { useHabits, Habit } from '@/context/HabitsContext';
 import { HabitCard } from '@/components/HabitCard';
+import { HabitCalendar } from '@/components/HabitCalendar';
 import { EmptyState } from '@/components/EmptyState';
 import { HABIT_ICONS, HABIT_COLORS, HABIT_CATEGORIES } from '@/constants/defaultData';
 
@@ -36,11 +37,12 @@ const DEFAULT_FORM: HabitForm = {
 export default function HabitsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { habits, addHabit, updateHabit, deleteHabit, toggleHabitCompletion, isCompletedToday, getTodayCompletedCount } = useHabits();
+  const { habits, addHabit, updateHabit, deleteHabit, toggleHabitCompletion, toggleHabitCompletionForDate, isCompletedToday, getTodayCompletedCount } = useHabits();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<HabitForm>(DEFAULT_FORM);
   const [filter, setFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   const openAdd = () => {
     setForm(DEFAULT_FORM);
@@ -88,51 +90,83 @@ export default function HabitsScreen() {
             {completedToday}/{habits.length} completed today
           </Text>
         </View>
-        <TouchableOpacity style={[styles.addBtn, { backgroundColor: colors.primary }]} onPress={openAdd}>
-          <Ionicons name="add" size={22} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {/* View toggle */}
+          <View style={[styles.viewToggle, { backgroundColor: colors.muted }]}>
+            <TouchableOpacity
+              style={[styles.toggleBtn, viewMode === 'list' && { backgroundColor: colors.primary }]}
+              onPress={() => setViewMode('list')}
+            >
+              <Ionicons name="list-outline" size={18} color={viewMode === 'list' ? '#fff' : colors.mutedForeground} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toggleBtn, viewMode === 'calendar' && { backgroundColor: colors.primary }]}
+              onPress={() => setViewMode('calendar')}
+            >
+              <Ionicons name="calendar-outline" size={18} color={viewMode === 'calendar' ? '#fff' : colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: colors.primary }]} onPress={openAdd}>
+            <Ionicons name="add" size={22} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Category Filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
-        {[{ value: 'all', label: 'All', icon: 'apps-outline' }, ...HABIT_CATEGORIES].map(cat => (
-          <TouchableOpacity
-            key={cat.value}
-            style={[styles.filterChip, { backgroundColor: filter === cat.value ? colors.primary : colors.muted }]}
-            onPress={() => setFilter(cat.value)}
-          >
-            <Text style={[styles.filterChipText, { color: filter === cat.value ? '#fff' : colors.mutedForeground }]}>
-              {cat.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon="checkmark-circle-outline"
-          title="No habits yet"
-          description="Tap the + button to add your first habit and start building routines"
-        />
+      {viewMode === 'calendar' ? (
+        /* ── Calendar view ── */
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: Platform.OS === 'web' ? 34 + 84 : insets.bottom + 100 }}
+        >
+          <HabitCalendar
+            habits={habits}
+            onToggleDate={(habitId, dateStr) => toggleHabitCompletionForDate(habitId, dateStr)}
+          />
+        </ScrollView>
       ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={h => h.id}
-          renderItem={({ item }) => (
-            <HabitCard
-              habit={item}
-              completed={isCompletedToday(item)}
-              onToggle={() => toggleHabitCompletion(item.id)}
-              onEdit={() => openEdit(item)}
-              onDelete={() => deleteHabit(item.id)}
+        /* ── List view ── */
+        <>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
+            {[{ value: 'all', label: 'All', icon: 'apps-outline' }, ...HABIT_CATEGORIES].map(cat => (
+              <TouchableOpacity
+                key={cat.value}
+                style={[styles.filterChip, { backgroundColor: filter === cat.value ? colors.primary : colors.muted }]}
+                onPress={() => setFilter(cat.value)}
+              >
+                <Text style={[styles.filterChipText, { color: filter === cat.value ? '#fff' : colors.mutedForeground }]}>
+                  {cat.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {filtered.length === 0 ? (
+            <EmptyState
+              icon="checkmark-circle-outline"
+              title="No habits yet"
+              description="Tap the + button to add your first habit and start building routines"
+            />
+          ) : (
+            <FlatList
+              data={filtered}
+              keyExtractor={h => h.id}
+              renderItem={({ item }) => (
+                <HabitCard
+                  habit={item}
+                  completed={isCompletedToday(item)}
+                  onToggle={() => toggleHabitCompletion(item.id)}
+                  onEdit={() => openEdit(item)}
+                  onDelete={() => deleteHabit(item.id)}
+                />
+              )}
+              contentContainerStyle={[
+                styles.list,
+                { paddingBottom: Platform.OS === 'web' ? 34 + 84 : insets.bottom + 100 }
+              ]}
+              showsVerticalScrollIndicator={false}
             />
           )}
-          contentContainerStyle={[
-            styles.list,
-            { paddingBottom: Platform.OS === 'web' ? 34 + 84 : insets.bottom + 100 }
-          ]}
-          showsVerticalScrollIndicator={false}
-        />
+        </>
       )}
 
       {/* Add/Edit Modal */}
@@ -229,6 +263,9 @@ const styles = StyleSheet.create({
   },
   screenTitle: { fontSize: 28, fontFamily: 'Inter_700Bold' },
   screenSub: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 2 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  viewToggle: { flexDirection: 'row', borderRadius: 22, padding: 3, gap: 2 },
+  toggleBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   addBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   filterScroll: { marginTop: 12 },
   filterContent: { paddingHorizontal: 20, gap: 8 },
