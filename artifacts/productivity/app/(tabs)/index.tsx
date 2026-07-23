@@ -143,7 +143,7 @@ export default function TodayScreen() {
       {/* Stats Row */}
       <View style={styles.statsRow}>
         <StatCard icon="trophy-outline" label="Active Goals" value={activeGoals.toString()} color={colors.success} colors={colors} />
-        <StatCard icon="bell-outline" label="Reminders" value={enabledReminders.toString()} color={colors.remindersColor} colors={colors} />
+        <StatCard icon="notifications-outline" label="Reminders" value={enabledReminders.toString()} color={colors.remindersColor} colors={colors} />
         <StatCard icon="book-outline" label="Journal" value={todayEntry ? '1' : '0'} color={colors.journalColor} colors={colors} />
       </View>
 
