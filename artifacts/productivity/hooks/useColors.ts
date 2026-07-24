@@ -27,5 +27,7 @@ export function useColors() {
     primary: settings.accentColor,
     tint: settings.accentColor,
     habitColor: settings.accentColor,
+    // Custom background overrides the theme default when set
+    background: settings.customBackground ?? palette.background,
   };
 }

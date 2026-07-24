@@ -4,7 +4,8 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 export interface AppSettings {
   themeMode: 'light' | 'dark' | 'system';
   accentColor: string;
-  weekStartsOn: 0 | 1;          // 0 = Sunday, 1 = Monday
+  customBackground: string | null;  // null = use theme default
+  weekStartsOn: 0 | 1;             // 0 = Sunday, 1 = Monday
   appName: string;
   showStreaks: boolean;
   defaultHabitView: 'list' | 'calendar';
@@ -19,8 +20,9 @@ interface SettingsContextType {
 export const DEFAULT_SETTINGS: AppSettings = {
   themeMode: 'system',
   accentColor: '#5B4FE9',
+  customBackground: null,
   weekStartsOn: 0,
-  appName: 'ORBIT',
+  appName: 'Orbit',
   showStreaks: true,
   defaultHabitView: 'list',
 };

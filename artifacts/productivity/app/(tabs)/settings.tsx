@@ -15,6 +15,21 @@ const ACCENT_COLORS = [
   '#0284C7', '#4F46E5', '#6D28D9', '#BE185D',
 ];
 
+const BACKGROUND_OPTIONS: { label: string; value: string | null }[] = [
+  { label: 'Default', value: null },
+  { label: 'White', value: '#FFFFFF' },
+  { label: 'Cream', value: '#FAF7F2' },
+  { label: 'Stone', value: '#F5F3EE' },
+  { label: 'Sky', value: '#EFF6FF' },
+  { label: 'Mint', value: '#F0FDF4' },
+  { label: 'Rose', value: '#FFF1F2' },
+  { label: 'Sand', value: '#FEFCE8' },
+  { label: 'Slate', value: '#1E293B' },
+  { label: 'Navy', value: '#0F172A' },
+  { label: 'Charcoal', value: '#18181B' },
+  { label: 'Forest', value: '#14261E' },
+];
+
 function SectionHeader({ title }: { title: string }) {
   const colors = useColors();
   return (
@@ -159,6 +174,40 @@ export default function SettingsScreen() {
                 {settings.accentColor === c && <Ionicons name="checkmark" size={14} color="#fff" />}
               </TouchableOpacity>
             ))}
+          </View>
+
+          <RowSeparator />
+
+          <View style={[styles.row, { backgroundColor: colors.card }]}>
+            <View style={[styles.rowIcon, { backgroundColor: '#06B6D420' }]}>
+              <Ionicons name="image-outline" size={20} color="#06B6D4" />
+            </View>
+            <View style={styles.rowLabel}>
+              <Text style={[styles.rowTitle, { color: colors.foreground }]}>Background</Text>
+              <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Custom app background color</Text>
+            </View>
+          </View>
+          <View style={[styles.bgGrid, { paddingHorizontal: 14, paddingBottom: 14 }]}>
+            {BACKGROUND_OPTIONS.map(opt => {
+              const selected = settings.customBackground === opt.value;
+              const swatch = opt.value ?? colors.background;
+              return (
+                <TouchableOpacity
+                  key={opt.label}
+                  style={[styles.bgSwatch, { backgroundColor: swatch, borderColor: selected ? colors.primary : colors.border }]}
+                  onPress={() => updateSetting('customBackground', opt.value)}
+                >
+                  {selected && (
+                    <View style={styles.bgCheck}>
+                      <Ionicons name="checkmark" size={12} color={opt.value && parseInt(opt.value.slice(1), 16) < 0x888888 ? '#fff' : '#333'} />
+                    </View>
+                  )}
+                  <Text style={[styles.bgLabel, { color: opt.value && parseInt(opt.value.slice(1), 16) < 0x888888 ? '#ccc' : '#555' }]} numberOfLines={1}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -345,6 +394,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   colorDotSelected: { borderWidth: 3, borderColor: '#fff' },
+  bgGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  bgSwatch: {
+    width: 72, height: 52, borderRadius: 10, borderWidth: 2,
+    alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 4, overflow: 'hidden',
+  },
+  bgCheck: {
+    position: 'absolute', top: 6, right: 6,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center',
+  },
+  bgLabel: { fontSize: 9, fontFamily: 'Inter_500Medium' },
   nameRow: { flex: 1 },
   nameInput: {
     borderBottomWidth: 1.5,

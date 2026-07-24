@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { AppState, Platform } from 'react-native';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { DEFAULT_REMINDERS } from '@/constants/defaultData';
 
 export interface Reminder {
@@ -45,14 +45,78 @@ Notifications.setNotificationHandler({
   }),
 });
 
+async function scheduleOne(reminder: Reminder): Promise<string | undefined> {
+  if (Platform.OS === 'web') return undefined;
+  try {
+    return await Notifications.scheduleNotificationAsync({
+      content: {
+        title: reminder.title,
+        body: reminder.description,
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: reminder.hour,
+        minute: reminder.minute,
+      },
+    });
+  } catch (e) {
+    console.error('Schedule notification error', e);
+    return undefined;
+  }
+}
+
+async function cancelOne(notificationId?: string) {
+  if (!notificationId || Platform.OS === 'web') return;
+  try {
+    await Notifications.cancelScheduledNotificationAsync(notificationId);
+  } catch (e) {
+    console.error('Cancel notification error', e);
+  }
+}
+
 export function RemindersProvider({ children }: { children: React.ReactNode }) {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<'undetermined' | 'granted' | 'denied'>('undetermined');
 
+  // Keep a ref so AppState handler always sees current reminders
+  const remindersRef = useRef(reminders);
+  useEffect(() => { remindersRef.current = reminders; }, [reminders]);
+
+  const notifEnabledRef = useRef(notificationsEnabled);
+  useEffect(() => { notifEnabledRef.current = notificationsEnabled; }, [notificationsEnabled]);
+
   useEffect(() => {
     initialize();
+  }, []);
+
+  // Re-check permissions whenever the app comes back to the foreground
+  // (user may have granted from device Settings)
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const sub = AppState.addEventListener('change', async nextState => {
+      if (nextState !== 'active') return;
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status === 'granted' && !notifEnabledRef.current) {
+        setPermissionStatus('granted');
+        setNotificationsEnabled(true);
+        await AsyncStorage.setItem(NOTIF_ENABLED_KEY, 'true');
+        // Re-schedule all currently-enabled reminders
+        const updated = await Promise.all(
+          remindersRef.current.map(async r => {
+            if (!r.enabled) return r;
+            await cancelOne(r.notificationId);
+            const notificationId = await scheduleOne(r);
+            return { ...r, notificationId };
+          }),
+        );
+        setReminders(updated);
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   const initialize = async () => {
@@ -78,7 +142,6 @@ export function RemindersProvider({ children }: { children: React.ReactNode }) {
         await AsyncStorage.setItem(NOTIF_ENABLED_KEY, 'false');
       } else {
         setPermissionStatus('undetermined');
-        // Auto-request on first launch
         await requestPermissionInternal();
       }
       await loadReminders();
@@ -97,8 +160,22 @@ export function RemindersProvider({ children }: { children: React.ReactNode }) {
         setPermissionStatus('granted');
         setNotificationsEnabled(true);
         await AsyncStorage.setItem(NOTIF_ENABLED_KEY, 'true');
+        // Re-schedule all currently-enabled reminders now that we have permission
+        const current = remindersRef.current;
+        if (current.length > 0) {
+          const updated = await Promise.all(
+            current.map(async r => {
+              if (!r.enabled) return r;
+              await cancelOne(r.notificationId);
+              const notificationId = await scheduleOne(r);
+              return { ...r, notificationId };
+            }),
+          );
+          setReminders(updated);
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        }
       } else {
-        setPermissionStatus('denied');
+        setPermissionStatus(status === 'denied' ? 'denied' : 'undetermined');
         setNotificationsEnabled(false);
         await AsyncStorage.setItem(NOTIF_ENABLED_KEY, 'false');
       }
@@ -130,71 +207,52 @@ export function RemindersProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
-  const scheduleNotification = async (reminder: Reminder): Promise<string | undefined> => {
-    if (Platform.OS === 'web') return undefined;
-    try {
-      const notifId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: reminder.title,
-          body: reminder.description,
-          sound: true,
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DAILY,
-          hour: reminder.hour,
-          minute: reminder.minute,
-        },
-      });
-      return notifId;
-    } catch (e) {
-      console.error('Schedule notification error', e);
-      return undefined;
-    }
-  };
-
-  const cancelNotification = async (notificationId?: string) => {
-    if (!notificationId || Platform.OS === 'web') return;
-    try {
-      await Notifications.cancelScheduledNotificationAsync(notificationId);
-    } catch (e) {
-      console.error('Cancel notification error', e);
-    }
-  };
-
   const addReminder = useCallback(async (reminderData: Omit<Reminder, 'id' | 'notificationId'>) => {
     const reminder: Reminder = { ...reminderData, id: generateId() };
-    if (reminder.enabled && notificationsEnabled) {
-      reminder.notificationId = await scheduleNotification(reminder);
+    // Always check live permission status, not just cached state
+    if (reminder.enabled) {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status === 'granted') {
+        reminder.notificationId = await scheduleOne(reminder);
+      }
     }
-    await saveReminders([...reminders, reminder]);
-  }, [reminders, notificationsEnabled]);
+    await saveReminders([...remindersRef.current, reminder]);
+  }, []);
 
   const updateReminder = useCallback(async (id: string, updates: Partial<Reminder>) => {
-    const updated = reminders.map(r => r.id === id ? { ...r, ...updates } : r);
+    const updated = remindersRef.current.map(r => r.id === id ? { ...r, ...updates } : r);
     await saveReminders(updated);
-  }, [reminders]);
+  }, []);
 
   const deleteReminder = useCallback(async (id: string) => {
-    const r = reminders.find(rem => rem.id === id);
-    if (r?.notificationId) await cancelNotification(r.notificationId);
-    await saveReminders(reminders.filter(rem => rem.id !== id));
-  }, [reminders]);
+    const r = remindersRef.current.find(rem => rem.id === id);
+    if (r?.notificationId) await cancelOne(r.notificationId);
+    await saveReminders(remindersRef.current.filter(rem => rem.id !== id));
+  }, []);
 
   const toggleReminder = useCallback(async (id: string) => {
-    const reminder = reminders.find(r => r.id === id);
+    const reminder = remindersRef.current.find(r => r.id === id);
     if (!reminder) return;
+
+    // Always read live permission status so we don't miss a just-granted permission
+    const { status } = Platform.OS !== 'web'
+      ? await Notifications.getPermissionsAsync()
+      : { status: 'denied' as const };
+    const hasPermission = status === 'granted';
+
     let notificationId = reminder.notificationId;
-    if (!reminder.enabled && notificationsEnabled) {
-      notificationId = await scheduleNotification(reminder);
+    if (!reminder.enabled && hasPermission) {
+      notificationId = await scheduleOne(reminder);
     } else if (reminder.enabled && notificationId) {
-      await cancelNotification(notificationId);
+      await cancelOne(notificationId);
       notificationId = undefined;
     }
-    const updated = reminders.map(r =>
-      r.id === id ? { ...r, enabled: !r.enabled, notificationId } : r
+
+    const updated = remindersRef.current.map(r =>
+      r.id === id ? { ...r, enabled: !r.enabled, notificationId } : r,
     );
     await saveReminders(updated);
-  }, [reminders, notificationsEnabled]);
+  }, []);
 
   return (
     <RemindersContext.Provider value={{
